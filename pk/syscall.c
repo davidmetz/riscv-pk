@@ -13,49 +13,36 @@ typedef long (*syscall_t)(long, long, long, long, long, long, long);
 
 #define CLOCK_FREQ 50000000
 
-static void output_csrs(){
-  uint64_t q0_0_1 = read_csr(hpmcounter5);
-  uint64_t q1_0_1 = read_csr(hpmcounter6);
-  uint64_t q2_0_1 = read_csr(hpmcounter7);
-  uint64_t q0_1_1 = read_csr(hpmcounter8);
-  uint64_t q1_1_1 = read_csr(hpmcounter9);
-  uint64_t q2_1_1 = read_csr(hpmcounter10);
-  uint64_t branch_misp = read_csr(hpmcounter3);
-  uint64_t branch_res = read_csr(hpmcounter4);
-
-  printk("=====performance_counters=====\n");
-  printk("%lld q0_0\n", q0_0_1 - current.q0_0_0);
-  printk("%lld q1_0\n", q1_0_1 - current.q1_0_0);
-  printk("%lld q2_0\n", q2_0_1 - current.q2_0_0);
-  printk("%lld q0_1\n", q0_1_1 - current.q0_1_0);
-  printk("%lld q1_1\n", q1_1_1 - current.q1_1_0);
-  printk("%lld q2_1\n", q2_1_1 - current.q2_1_0);
-  printk("%lld branch_misp\n", branch_misp - current.branch_misp_0);
-  printk("%lld branch_res\n", branch_res - current.branch_res_0);
+static void output_csrs(counter_data * ptr, char * prefix){
+  printk("%lld %sq0_0\n", ptr ->q0_0_0, prefix);
+  printk("%lld %sq1_0\n", ptr ->q1_0_0, prefix);
+  printk("%lld %sq2_0\n", ptr ->q2_0_0, prefix);
+  printk("%lld %sq0_1\n", ptr ->q0_1_0, prefix);
+  printk("%lld %sq1_1\n", ptr ->q1_1_0, prefix);
+  printk("%lld %sq2_1\n", ptr ->q2_1_0, prefix);
+  printk("%lld %sbranch_misp\n", ptr ->branch_misp_0, prefix);
+  printk("%lld %sbranch_res\n", ptr ->branch_res_0, prefix);
+  printk("%lld %sticks (ns)\n", ptr ->time0, prefix);
+  printk("%lld %scycles\n", ptr ->cycle0, prefix);
+  printk("%lld %sinstructions\n", ptr ->instret0, prefix);
 }
 
 void sys_exit(int code)
 {
-  if (current.cycle0) {
-    uint64_t dc = rdcycle64() - current.cycle0;
-    uint64_t dt = rdtime64() - current.time0;
-    uint64_t di = rdinstret64() - current.instret0;
+  if (current.collect_counters) {
+    counter_data dt;
+    read_csrs(&dt);
     // measure here because the prints will cause syscalls
     uint64_t sc = current.syscall_cnt;
     uint64_t fs = current.frontend_syscall_cnt;
-    uint64_t fsc = current.frontend_syscall_cycles;
-    uint64_t fsr = current.frontend_syscall_instret;
+    subtract_counter(&dt, &current.ctrs);
 
-    output_csrs();
-    printk("%lld ticks (ns)\n", dt);
-    printk("%lld cycles\n", dc);
-    printk("%lld instructions\n", di);
-    printk("%d.%d%d CPI\n", (int)(dc/di), (int)(10ULL*dc/di % 10),
-        (int)((100ULL*dc)/di % 10));
+
+    printk("=====performance_counters=====\n");
+    output_csrs(&dt, "");
     printk("%lld syscalls\n", sc);
     printk("%lld frontend_syscalls\n", fs);
-    printk("%lld frontend_syscall_cycles\n", fsc);
-    printk("%lld frontend_syscall_instructions\n", fsr);
+    output_csrs(&current.frontend_ctrs, "frontend_syscall_");
   }
   shutdown(code);
 }

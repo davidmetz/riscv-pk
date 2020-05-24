@@ -11,8 +11,10 @@
 long frontend_syscall(long n, uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5, uint64_t a6)
 {
   static volatile uint64_t magic_mem[8];
-  uint64_t cycles0 = rdcycle64();
-  uint64_t instret0 = rdinstret64();
+  counter_data dt;
+  if(current.collect_counters){
+    read_csrs(&dt);
+  }
   static spinlock_t lock = SPINLOCK_INIT;
   spinlock_lock(&lock);
 
@@ -30,9 +32,14 @@ long frontend_syscall(long n, uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3
   long ret = magic_mem[0];
 
   spinlock_unlock(&lock);
-  current.frontend_syscall_cnt++;
-  current.frontend_syscall_instret += (rdinstret64()-instret0);
-  current.frontend_syscall_cycles += (rdcycle64()-cycles0);
+
+  if(current.collect_counters){
+      current.frontend_syscall_cnt++;
+      counter_data dt2;
+      read_csrs(&dt2);
+      subtract_counter(&dt2, &dt);
+      add_counter(&current.frontend_ctrs, &dt2);
+  }
   return ret;
 }
 

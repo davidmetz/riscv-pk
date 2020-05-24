@@ -37,7 +37,7 @@ static void handle_option(const char* arg)
   }
 
   if (strcmp(arg, "-s") == 0) {  // print cycle count upon termination
-    current.cycle0 = 1;
+    current.collect_counters = true;
     return;
   }
 
@@ -107,20 +107,6 @@ static void init_csrs(){
 
   // continue execution
   enter_supervisor_mode(rest_of_boot_loader, pk_vm_init(), 0);
-}
-static void read_csrs(){
-
-  // Read the initial value of the CSR regs attached to the counters
-  current.branch_misp_0 = read_csr(hpmcounter3);
-  current.branch_res_0 = read_csr(hpmcounter4);
-  current.q0_0_0 = read_csr(hpmcounter5);
-  current.q1_0_0 = read_csr(hpmcounter6);
-  current.q2_0_0 = read_csr(hpmcounter7);
-  current.q0_1_0 = read_csr(hpmcounter8);
-  current.q1_1_0 = read_csr(hpmcounter9);
-  current.q2_1_0 = read_csr(hpmcounter10);
-  current.syscall_cnt = 0;
-  current.frontend_syscall_cnt = 0;
 }
 
 static void run_loaded_program(size_t argc, char** argv, uintptr_t kstack_top)
@@ -193,11 +179,11 @@ static void run_loaded_program(size_t argc, char** argv, uintptr_t kstack_top)
 
   STACK_INIT(uintptr_t);
 
-  if (current.cycle0) { // start timer if so requested
-    read_csrs();
-    current.time0 = rdtime64();
-    current.cycle0 = rdcycle64();
-    current.instret0 = rdinstret64();
+  if (current.collect_counters) { // start timer if so requested
+    current.frontend_syscall_cnt = 0;
+    current.syscall_cnt = 0;
+    zero_counter(&current.frontend_ctrs);
+    read_csrs(&current.ctrs);
   }
 
   trapframe_t tf;
