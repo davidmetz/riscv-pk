@@ -9,6 +9,8 @@
 void shutdown(int) __attribute__((noreturn));
 long frontend_syscall(long n, uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5, uint64_t a6);
 
+//void print_frontend_times();
+
 struct frontend_stat {
   uint64_t dev;
   uint64_t ino;

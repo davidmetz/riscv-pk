@@ -8,6 +8,17 @@
 #include "boot.h"
 #include <stdint.h>
 
+//static int frontend_ctr = 0;
+//static size_t frontend_call_times[1024];
+//
+//void print_frontend_times(){
+//    int fc = frontend_ctr;
+//    printk("frontend times\n");
+//    for(int i=0; i<fc; i++){
+//        printk("%d\n", frontend_call_times[i]-current.ctrs.cycle0);
+//    }
+//}
+
 long frontend_syscall(long n, uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5, uint64_t a6)
 {
   static volatile uint64_t magic_mem[8];
@@ -15,6 +26,9 @@ long frontend_syscall(long n, uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3
   if(current.collect_counters){
     read_csrs(&dt);
   }
+
+//  frontend_call_times[frontend_ctr] = rdcycle64();
+//  frontend_ctr++;
   static spinlock_t lock = SPINLOCK_INIT;
   spinlock_lock(&lock);
 

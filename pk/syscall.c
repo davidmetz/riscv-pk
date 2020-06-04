@@ -36,13 +36,16 @@ void sys_exit(int code)
     uint64_t sc = current.syscall_cnt;
     uint64_t fs = current.frontend_syscall_cnt;
     subtract_counter(&dt, &current.ctrs);
-
+    counter_data fdt;
+    zero_counter(&fdt);
+    add_counter(&fdt, &current.frontend_ctrs);
+//    print_frontend_times();
 
     printk("=====performance_counters=====\n");
     output_csrs(&dt, "");
     printk("%lld syscalls\n", sc);
     printk("%lld frontend_syscalls\n", fs);
-    output_csrs(&current.frontend_ctrs, "frontend_syscall_");
+    output_csrs(&fdt, "frontend_syscall_");
   }
   shutdown(code);
 }
